@@ -23,6 +23,8 @@ import io.fotoapparat.routine.capability.getCapabilities
 import io.fotoapparat.routine.focus.focus
 import io.fotoapparat.routine.parameter.getCurrentParameters
 import io.fotoapparat.routine.photo.takePhoto
+import io.fotoapparat.routine.sound.mute
+import io.fotoapparat.routine.sound.unmute
 import io.fotoapparat.routine.zoom.updateZoomLevel
 import io.fotoapparat.selector.*
 import io.fotoapparat.view.CameraRenderer
@@ -228,6 +230,36 @@ class Fotoapparat
                     mainThreadErrorCallback = mainThreadErrorCallback
             )
         })
+    }
+
+    /**
+     * Mute the shutter sound of currently selected camera if possible.
+     * @return [BooleanResult] which will deliver result asynchronously.
+     */
+    fun muteShutter(): BooleanResult {
+        logger.recordMethod()
+
+        val future = executor.execute(Operation(
+                cancellable = true,
+                function = device::mute
+        ))
+
+        return PendingResult.fromFuture(future, logger)
+    }
+
+    /**
+     * Unmute the shutter sound of currently selected camera.
+     * @return [BooleanResult] which will deliver result asynchronously.
+     */
+    fun unmuteShutter(): BooleanResult {
+        logger.recordMethod()
+
+        val future = executor.execute(Operation(
+                cancellable = true,
+                function = device::unmute
+        ))
+
+        return PendingResult.fromFuture(future, logger)
     }
 
     /**

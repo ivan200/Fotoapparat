@@ -4,6 +4,7 @@ package io.fotoapparat.hardware
 
 import android.hardware.Camera
 import android.media.MediaRecorder
+import android.os.Build
 import android.view.Surface
 import androidx.annotation.FloatRange
 import io.fotoapparat.capability.Capabilities
@@ -33,8 +34,6 @@ import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicReference
 
-typealias PreviewSize = io.fotoapparat.parameter.Resolution
-
 /**
  * Camera.
  */
@@ -54,14 +53,14 @@ internal open class CameraDevice(
     private lateinit var imageOrientation: Orientation
     private lateinit var previewOrientation: Orientation
 
+
+    private val cameraId: Int get() = characteristics.lensPosition.toCameraId()
+
     /**
      * Opens a connection to a camera.
      */
     open fun open() {
         logger.recordMethod()
-
-        val lensPosition = characteristics.lensPosition
-        val cameraId = lensPosition.toCameraId()
 
         try {
             camera = Camera.open(cameraId)
@@ -69,7 +68,7 @@ internal open class CameraDevice(
             previewStream = PreviewStream(camera)
         } catch (e: RuntimeException) {
             throw CameraException(
-                    message = "Failed to open camera with lens position: $lensPosition and id: $cameraId",
+                    message = "Failed to open camera with lens position: ${characteristics.lensPosition} and id: $cameraId",
                     cause = e
             )
         }
@@ -368,6 +367,21 @@ internal open class CameraDevice(
         }
     }
 
+    open fun setShutterSound(enable: Boolean): Boolean {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.JELLY_BEAN_MR1) {
+            return false
+        }
+
+        Camera.CameraInfo()
+                .apply { Camera.getCameraInfo(cameraId, this) }
+                .apply {
+                    if(canDisableShutterSound) {
+                        return camera.enableShutterSound(enable)
+                    }
+                }
+
+        return false
+    }
 }
 
 private const val AUTOFOCUS_TIMEOUT_SECONDS = 3L
@@ -410,7 +424,7 @@ private fun Camera.setDisplaySurface(
 private fun Camera.getPreviewResolution(previewOrientation: Orientation): Resolution {
     return parameters.previewSize
             .run {
-                PreviewSize(width, height)
+                Resolution(width, height)
             }
             .run {
                 when (previewOrientation) {
